@@ -13,7 +13,7 @@ Ao longo do desenvolvimento, foram explorados conceitos fundamentais de Sistemas
 A Figura 1 apresenta a arquitetura geral do sistema e o fluxo de comunicação entre as aplicações em modo usuário e o driver implementado no kernel Linux.
 
 <p align="center">
-    <img src="imagens/diagrama_blocos.png" width="700">
+    <img src="imagens/diagrama_driver.png" width="700">
     <br>
     <em>Figura 1 – Arquitetura geral do MiniDriver.</em>
 </p>
