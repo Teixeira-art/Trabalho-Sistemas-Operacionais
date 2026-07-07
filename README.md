@@ -25,5 +25,3 @@ O fluxo de funcionamento ocorre da seguinte forma:
 3. A chamada é encaminhada para a função correspondente implementada no driver (`minidriver_open`, `minidriver_read`, `minidriver_write`, `minidriver_release` ou `minidriver_ioctl`).
 4. O driver realiza a operação solicitada sobre o buffer interno localizado no espaço do kernel.
 5. Quando necessário, os dados são copiados entre o espaço do usuário e o espaço do kernel utilizando as funções `copy_from_user()` e `copy_to_user()`.
-
----
