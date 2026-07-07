@@ -1,8 +1,8 @@
-# Driver de Caractere Virtual para Linux
+# Trabalho de Sistemas Operacionais
 
 ## Introdução
 
-Este projeto consiste no desenvolvimento de um driver de caractere virtual para o sistema operacional Linux, implementado em linguagem C como um módulo do kernel. O objetivo é demonstrar, de forma prática, o funcionamento básico de um *device driver* e a comunicação entre o espaço de usuário (*user space*) e o espaço do kernel (*kernel space*).
+Este projeto consiste no desenvolvimento de um driver de caractere virtual para o sistema operacional Linux, implementado em linguagem C como um módulo do kernel. O objetivo é demonstrar, de forma prática, o funcionamento básico de um device driver e a comunicação entre o espaço de usuário (user space) e o espaço do kernel (kernel space).
 
 O driver cria um dispositivo virtual acessível através do diretório `/dev`, permitindo que aplicações em espaço de usuário realizem operações de leitura, escrita e controle utilizando chamadas de sistema como `open()`, `read()`, `write()`, `close()` e `ioctl()`. Diferentemente de um driver associado a um dispositivo físico, este projeto implementa um dispositivo inteiramente em software, funcionando como um buffer interno gerenciado pelo kernel.
 
