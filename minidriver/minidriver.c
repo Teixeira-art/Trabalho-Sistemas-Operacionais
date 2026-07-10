@@ -1,23 +1,40 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
-#include <linux/fs.h>
-#include <linux/cdev.h>
+#include <linux/fs.h> //estruturas relacionadas a arquivos e dispositivos
+#include <linux/cdev.h> //bom para estruturar driver de caractere
 #include <linux/device.h>
 #include <linux/uaccess.h>
+#include <linux/wait.h>
+
+//onde estao os comandos ioctl
+#include "minidriver_ioctl.h"
+
+//parte do ioctl
+#include <linux/string.h>
 
 #define DEVICE_NAME "minidriver"
 #define CLASS_NAME  "miniclass"
 
 #define BUFFER_SIZE 1024
 
+
+//parte do ioctl
+//usando _u32 pq o tamanho fica definido e compatível entre kernel e programa de usuário
+
+
 static char kernel_buffer[BUFFER_SIZE];
 static size_t buffer_size = 0;
-static int write_count = 0;
+//parte do ioctl
+static __u32 read_count = 0;
+static __u32 write_count = 0; //mesmo nome soq tipo diferente
 
 static dev_t dev_number;
 static struct cdev minidriver_cdev;
 static struct class *minidriver_class;
+static DECLARE_WAIT_QUEUE_HEAD(fila_leitura);
+
+
 
 static int minidriver_open(struct inode *inode, struct file *file)
 {
@@ -37,13 +54,15 @@ static ssize_t minidriver_write(struct file *file, const char __user *user_buffe
         len = BUFFER_SIZE - buffer_size;
 
     if (len == 0)
-        return -ENOMEM;
+        return -ENOSPC; //mudei para referenciar apenas o buffer
 
     if (copy_from_user(kernel_buffer + buffer_size, user_buffer, len))
         return -EFAULT;
 
     buffer_size += len;
     write_count++;
+
+    wake_up_interruptible(&fila_leitura);
 
     printk(KERN_INFO "MiniDriver: dados adicionados ao buffer\n");
 
@@ -52,6 +71,13 @@ static ssize_t minidriver_write(struct file *file, const char __user *user_buffe
 
 static ssize_t minidriver_read(struct file *file, char __user *user_buffer, size_t len, loff_t *offset)
 {
+    if (buffer_size == 0) {
+    printk(KERN_INFO "MiniDriver: buffer vazio, processo bloqueado\n");ffwf
+
+        if (wait_event_interruptible(fila_leitura, buffer_size > 0))
+        return -ERESTARTSYS;
+    }
+
     if (*offset >= buffer_size)
         return 0;
 
@@ -62,10 +88,51 @@ static ssize_t minidriver_read(struct file *file, char __user *user_buffer, size
         return -EFAULT;
 
     *offset += len;
+    read_count++; // do ioctl
 
     printk(KERN_INFO "MiniDriver: dados lidos do buffer\n");
 
     return len;
+}
+
+static long minidriver_ioctl(struct file *file, unsigned int cmd, unsigned long arg){
+    __u32 value;
+
+    switch (cmd) {
+    case CLEAR_BUFFER:
+        memset(kernel_buffer, 0, BUFFER_SIZE);
+        buffer_size = 0;
+
+        printk(KERN_INFO "MiniDriver: buffer limpo\n");
+        return 0;
+
+    case GET_BUFFER_SIZE:
+        value = (__u32)buffer_size;
+
+        if (copy_to_user((void __user *)arg, &value, sizeof(value)))
+            return -EFAULT;
+
+        return 0;
+
+    case GET_READ_COUNT:
+        value = read_count;
+
+        if (copy_to_user((void __user *)arg, &value, sizeof(value)))
+            return -EFAULT;
+
+        return 0;
+
+    case GET_WRITE_COUNT:
+        value = write_count;
+
+        if (copy_to_user((void __user *)arg, &value, sizeof(value)))
+            return -EFAULT;
+
+        return 0;
+
+    default:
+        return -ENOTTY;
+    }
 }
 
 static struct file_operations fops = {
@@ -74,6 +141,7 @@ static struct file_operations fops = {
     .release = minidriver_release,
     .read = minidriver_read,
     .write = minidriver_write,
+    .unlocked_ioctl = minidriver_ioctl,
 };
 
 static int __init minidriver_init(void)
